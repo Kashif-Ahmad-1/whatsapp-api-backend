@@ -6,7 +6,7 @@ const authenticate = (req, res, next) => {
   if (!token) return res.status(401).json({ message: "Access Denied. No token provided." });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET,{ expiresIn: '999h' });
     req.user = { id: decoded.id }; // Ensure req.user.id is set
     next();
   } catch (error) {
