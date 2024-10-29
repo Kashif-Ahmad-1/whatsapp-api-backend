@@ -23,6 +23,10 @@ app.use("/api/whatsapp", whatsappRoutes);
 app.use("/api/whatsapp", messageRoutes);
 app.use('/api',authenticate, accountRoutes);
 
+app.get('/',(req,res)=>{
+    res.json({message: "Hello this is kashif"})
+  })
+
 // app.post('/api/whatsapp/save', authenticate, async (req, res) => {
 //     try {
 //       const { apiKey, receiverMobileNo, message } = req.body;
