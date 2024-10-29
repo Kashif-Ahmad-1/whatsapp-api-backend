@@ -1,3 +1,23 @@
+
+const express = require("express");
+const { getApiKey, saveApiKey, sendMessage, uploadImage } = require("../controllers/whatsappController");
+const authenticate = require("../middleware/authenticate");
+const multer = require('multer');
+
+// Set up Multer for file uploads
+const storage = multer.memoryStorage(); // Store files in memory
+const upload = multer({ storage: storage });
+
+const router = express.Router();
+
+router.get("/api-key", authenticate, getApiKey);       // Fetch existing API key
+router.post("/api-key", authenticate, saveApiKey);     // Save or update API key
+router.post("/send-message", authenticate, sendMessage); // Send WhatsApp message
+router.post("/upload", authenticate, upload.array('image'), uploadImage); // Upload images
+
+module.exports = router;
+
+
 // const express = require("express");
 // const { getApiKey, saveApiKey, sendMessage, getSavedMessages, uploadImage } = require("../controllers/whatsappController");
 // const authenticate = require("../middleware/authenticate");
@@ -33,21 +53,3 @@
 // module.exports = router;
 
 
-
-const express = require("express");
-const { getApiKey, saveApiKey, sendMessage, uploadImage } = require("../controllers/whatsappController");
-const authenticate = require("../middleware/authenticate");
-const multer = require('multer');
-
-// Set up Multer for file uploads
-const storage = multer.memoryStorage(); // Store files in memory
-const upload = multer({ storage: storage });
-
-const router = express.Router();
-
-router.get("/api-key", authenticate, getApiKey);       // Fetch existing API key
-router.post("/api-key", authenticate, saveApiKey);     // Save or update API key
-router.post("/send-message", authenticate, sendMessage); // Send WhatsApp message
-router.post("/upload", authenticate, upload.array('image'), uploadImage); // Upload images
-
-module.exports = router;

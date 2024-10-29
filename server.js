@@ -15,7 +15,12 @@ const app = express();
 connectDB();
 app.use(bodyParser.json());
 // Enable CORS for all routes
-app.use(cors({ origin: "http://localhost:3000" })); // Allow only the React app origin
+app.use(cors({
+  origin: ['https://whatsappapi-sigma.vercel.app','http://localhost:3000'], // Allow both localhost and deployed frontend
+  methods: ['GET', 'POST', 'PUT', 'PATCH','DELETE','OPTIONS'],
+ 
+  
+}));
 
 app.use(express.json());
 app.use("/api/auth", authRoutes);
