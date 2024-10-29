@@ -6,7 +6,9 @@ const whatsappRoutes = require("./routes/whatsappRoutes");
 const messageRoutes = require('./routes/messageRoutes')
 const authenticate = require('./middleware/authenticate');
 const Message = require('./models/Message');
+const accountRoutes = require('./routes/accountRoutes');
 const bodyParser = require('body-parser');
+
 require("dotenv").config();
 
 const app = express();
@@ -19,7 +21,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/whatsapp", whatsappRoutes);
 app.use("/api/whatsapp", messageRoutes);
-
+app.use('/api',authenticate, accountRoutes);
 
 // app.post('/api/whatsapp/save', authenticate, async (req, res) => {
 //     try {

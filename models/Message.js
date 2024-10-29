@@ -7,6 +7,7 @@ const messageSchema = new mongoose.Schema({
   apiKey: { type: String, required: true },
   receiverMobileNo: { type: String, required: true },
   message: { type: String, required: true },
+  filePathUrl: {type: String},
 }, { timestamps: true });
 
 module.exports = mongoose.model('Message', messageSchema);

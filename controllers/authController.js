@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-
+const activeTokens = new Set(); 
 
 const nodemailer = require("nodemailer");
 
@@ -15,14 +15,14 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.register = async (req, res) => {
-  const { username, email, password, phone, role } = req.body; // Get role from request body
+  const { name, username, email, password, phone, role } = req.body; // Get role from request body
   try {
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) return res.status(400).json({ message: "User already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const isAdmin = role === "admin"; // Set isAdmin based on role
-    const user = new User({ username, email, password: hashedPassword, phone, isAdmin });
+    const user = new User({name, username, email, password: hashedPassword, phone, isAdmin });
 
     await user.save();
     res.status(201).json({ message: "User registered successfully" });
@@ -33,22 +33,23 @@ exports.register = async (req, res) => {
 
 
 exports.login = async (req, res) => {
-    const { identifier, password } = req.body;
-    try {
+  const { identifier, password } = req.body;
+  try {
       const user = await User.findOne({
-        $or: [{ email: identifier }, { username: identifier }]
+          $or: [{ email: identifier }, { username: identifier }]
       });
       if (!user) return res.status(400).json({ message: "User not found" });
-  
+
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
-  
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-      res.json({ token });
-    } catch (error) {
+
+      const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET, { expiresIn: "999h" });
+      res.json({ token, isAdmin: user.isAdmin });
+  } catch (error) {
       res.status(500).json({ message: error.message });
-    }
-  };
+  }
+};
+
 
 
   exports.forgotPassword = async (req, res) => {
@@ -96,4 +97,36 @@ exports.login = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+};
+
+exports.logout = (req, res) => {
+  const token = req.header("Authorization")?.replace("Bearer ", "");
+
+  if (token) {
+    activeTokens.add(token); // Add the token to the blacklist
+    res.status(200).json({ message: "Logged out successfully" });
+  } else {
+    res.status(400).json({ message: "No token provided" });
+  }
+};
+
+
+
+exports.getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; // Get the user ID from the authenticated request
+    const user = await User.findById(userId).select('-password'); // Exclude the password field
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      message: "User profile retrieved successfully",
+      result: user,
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ message: "Failed to retrieve user profile", error: error.message });
+  }
 };

@@ -1,6 +1,20 @@
 const WhatsAppKey = require("../models/WhatsAppKey");
 const axios = require("axios");
 const Message = require('../models/Message')
+const cloudinary = require('cloudinary').v2;
+
+exports.uploadImage = (req, res) => {
+  // Check if files were uploaded
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: "No files uploaded." });
+  }
+  
+  // Map through the files to get their URLs
+  const filePathUrls = req.files.map(file => file.path); // Extracting the URLs returned by Cloudinary
+
+  // Send back the array of file URLs
+  res.json({ filePathUrls });
+};
 // Get WhatsApp API key for the logged-in user
 exports.getApiKey = async (req, res) => {
   try {
@@ -38,7 +52,7 @@ exports.saveApiKey = async (req, res) => {
   
     try {
       // Log incoming request
-      console.log("Incoming request body:", req.body);
+      // console.log("Incoming request body:", req.body);
   
       // Validate inputs
       if (!receiverMobileNo || (message && !Array.isArray(message)) || (message && message.length === 0) || (message && typeof message[0] !== 'string')) {

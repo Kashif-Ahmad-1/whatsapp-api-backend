@@ -3,8 +3,10 @@ const User = require('../models/User'); // Import the User model
 
 exports.getMessages = async (req, res) => {
   try {
-    // Fetch all messages and populate user information
-    const messages = await Message.find().populate('userId', 'username email'); // Adjust fields as necessary
+    const userId = req.user.id; // Get the authenticated user's ID from the request
+
+    // Fetch messages for the authenticated user and populate user information
+    const messages = await Message.find({ userId }).populate('userId', 'username email'); // Filter messages by userId
 
     res.json({
       message: "Messages retrieved successfully",
