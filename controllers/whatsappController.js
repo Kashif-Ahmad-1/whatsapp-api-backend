@@ -3,7 +3,7 @@ const axios = require("axios");
 const Message = require('../models/Message');
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
-
+const ScheduledMessage = require('../models/ScheduledMessage')
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: 'diefvxqdv',
@@ -152,58 +152,51 @@ exports.saveApiKey = async (req, res) => {
   };
  
   
-
+  exports.scheduleMessage = async (req, res) => {
+    const { receiverMobileNo, message, scheduledTime } = req.body;
+    const userId = req.user.id; // Assuming you have user authentication
+  
+    const scheduledMessage = new ScheduledMessage({
+      userId,
+      receiverMobileNo,
+      message,
+      scheduledTime,
+      sent: false
+    });
+  
+    try {
+      await scheduledMessage.save();
+      res.status(201).json({ message: "Message scheduled successfully!", scheduledMessage });
+    } catch (error) {
+      console.error("Error scheduling message:", error);
+      res.status(500).json({ message: "Failed to schedule message." });
+    }
+  };
   
 
+// Get Scheduled Messages Endpoint
+exports.getScheduledMessages = async (req, res) => {
+  try {
+    const messages = await ScheduledMessage.find({ userId: req.user.id });
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Error fetching scheduled messages:", error);
+    res.status(500).json({ message: "Failed to fetch scheduled messages." });
+  }
+};
 
-// exports.sendMessage = async (req, res) => {
-//   let { receiverMobileNo, message } = req.body;
 
-//   try {
-//     // console.log("Incoming request data:", req.body);
+exports.deleteScheduledMessage = async (req, res) => {
+  const { id } = req.params; // Assume the message ID is passed as a URL parameter
 
-//     // Check if receiverMobileNo is a string and message is an array
-//     if (!receiverMobileNo || !Array.isArray(message) || message.length === 0 || typeof message[0] !== 'string') {
-//       return res.status(400).json({ message: "Receiver mobile number must be a string and message must be a non-empty array of strings." });
-//     }
-
-//     const keyRecord = await WhatsAppKey.findOne({ userId: req.user.id });
-
-//     if (!keyRecord) {
-//       return res.status(400).json({ message: "API key not found. Please set your API key." });
-//     }
-
-//     const response = await axios.post(
-//       "https://app.messageautosender.com/api/v1/message/create",
-//       { receiverMobileNo, message }, // Send message as an array
-//       { headers: { "x-api-key": keyRecord.apiKey } }
-//     );
-
-//     // Convert message array to a string for saving in the database
-//     const messageString = message.join(' '); // Join array elements into a single string
-    
-//     // Save to database
-//     const newMessage = new Message({
-//       userId: req.user.id,
-//       apiKey: keyRecord.apiKey,
-//       receiverMobileNo,
-//       message: messageString, // Save as a string
-//     });
-
-//     await newMessage.save();
-//     const populatedMessage = await Message.findById(newMessage._id).populate('userId', 'name email'); // Adjust fields as necessary
-//     res.json({
-//       message: "Message sent successfully and saved!",
-//       response: response.data,
-//       savedMessageId: newMessage._id,
-//       user: populatedMessage.userId,
-//     });
-//   } catch (error) {
-//     console.error("Error details:", error);
-//     if (error.response) {
-//       console.error("Axios error response:", error.response.data);
-//       return res.status(error.response.status).json({ message: error.response.data });
-//     }
-//     res.status(500).json({ message: "Failed to send message or save it to the database.", error: error.message });
-//   }
-// };
+  try {
+    const result = await ScheduledMessage.findOneAndDelete({ _id: id, userId: req.user.id });
+    if (!result) {
+      return res.status(404).json({ message: "Message not found." });
+    }
+    res.status(200).json({ message: "Message deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting scheduled message:", error);
+    res.status(500).json({ message: "Failed to delete message." });
+  }
+};

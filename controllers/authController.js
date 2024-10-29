@@ -2,9 +2,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const activeTokens = new Set(); 
-
+const WhatsAppKey = require('../models/WhatsAppKey'); 
 const nodemailer = require("nodemailer");
-
+const axios = require('axios');
+const https = require('https');
 // Configure nodemailer
 const transporter = nodemailer.createTransport({
   service: 'Gmail', // You can use any service you want
@@ -130,3 +131,61 @@ exports.getUserProfile = async (req, res) => {
     res.status(500).json({ message: "Failed to retrieve user profile", error: error.message });
   }
 };
+
+
+exports.updateUserData = async (userId) => {
+  try {
+    // Fetch user details
+    console.log(`Fetching user details for user ID: ${userId}`);
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error(`User with ID ${userId} not found.`);
+      return;
+    }
+
+    // console.log(`User found: ${user.username}`);
+
+    // Fetch WhatsApp API key
+    // console.log(`Fetching WhatsApp API key for user ID: ${userId}`);
+    const whatsappKeyDoc = await WhatsAppKey.findOne({ userId: userId });
+    if (!whatsappKeyDoc) {
+      console.error(`API key for user ID ${userId} not found.`);
+      return;
+    }
+
+    const { apiKey } = whatsappKeyDoc;
+    const token = user.authtoken; // Assuming you have a token stored in the User model
+
+    // console.log(`Fetching data from external API using API key: ${apiKey}`);
+    
+    // Fetch data from external API
+    const response = await axios.get('https://app.smartitbox.in/api/v1/account/detail', {
+      headers: {
+        'x-api-key': apiKey,
+        Authorization: `Bearer ${token}`,
+      },
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false // Disable SSL verification
+      })
+    });
+
+    if (response.data.status === 200) {
+      const { accountType, activeUpto, roles } = response.data.result;
+
+      // Update the user document
+      // console.log(`Updating user ${userId} with new data:`, { accountType, activeUpto, roles });
+      await User.findByIdAndUpdate(userId, {
+        accountType,
+        activeUpto,
+        roles,
+      });
+      console.log(`User ${userId} updated successfully.`);
+    } else {
+      console.error('Failed to fetch account details:', response.data.message);
+    }
+  } catch (error) {
+    console.error('Error fetching account details:', error.message);
+  }
+};
+
+
