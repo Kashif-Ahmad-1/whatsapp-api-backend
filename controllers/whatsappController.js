@@ -1,20 +1,52 @@
 const WhatsAppKey = require("../models/WhatsAppKey");
 const axios = require("axios");
-const Message = require('../models/Message')
+const Message = require('../models/Message');
 const cloudinary = require('cloudinary').v2;
+const { Readable } = require('stream');
 
-exports.uploadImage = (req, res) => {
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: 'diefvxqdv',
+  api_key: '156887339719455',
+  api_secret: 'klGS-0_rcHywWyApoOsoV4UhgNU',
+});
+
+exports.uploadImage = async (req, res) => {
   // Check if files were uploaded
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: "No files uploaded." });
   }
-  
-  // Map through the files to get their URLs
-  const filePathUrls = req.files.map(file => file.path); // Extracting the URLs returned by Cloudinary
 
-  // Send back the array of file URLs
-  res.json({ filePathUrls });
+  try {
+    // Map through the files and upload to Cloudinary
+    const filePathUrls = await Promise.all(req.files.map(file => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({
+          folder: 'uploads',
+          resource_type: 'image',
+        }, (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result.secure_url); // Get the secure URL from Cloudinary response
+          }
+        });
+
+        const bufferStream = new Readable();
+        bufferStream.push(file.buffer);
+        bufferStream.push(null); // Signal the end of the stream
+        bufferStream.pipe(stream);
+      });
+    }));
+
+    // Send back the array of file URLs
+    res.status(200).json({ filePathUrls });
+  } catch (error) {
+    res.status(500).json({ message: "Upload failed.", details: error });
+  }
 };
+
+
 // Get WhatsApp API key for the logged-in user
 exports.getApiKey = async (req, res) => {
   try {

@@ -10,7 +10,7 @@ const accountRoutes = require('./routes/accountRoutes');
 const bodyParser = require('body-parser');
 
 require("dotenv").config();
-
+// "multer-storage-cloudinary": "^4.0.0",
 const app = express();
 connectDB();
 app.use(bodyParser.json());
