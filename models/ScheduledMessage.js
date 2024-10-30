@@ -6,6 +6,7 @@ const scheduledMessageSchema = new mongoose.Schema({
   receiverMobileNo: { type: String, required: true },
   message: { type: String, required: true },
   scheduledTime: { type: Date, required: true },
+  filePathUrl: [{ type: String }],
   sent: { type: Boolean, default: false }
 });
 

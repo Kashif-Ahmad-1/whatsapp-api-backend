@@ -153,14 +153,16 @@ exports.saveApiKey = async (req, res) => {
  
   
   exports.scheduleMessage = async (req, res) => {
-    const { receiverMobileNo, message, scheduledTime } = req.body;
+    const { receiverMobileNo, message, scheduledTime,filePathUrl } = req.body;
     const userId = req.user.id; // Assuming you have user authentication
   
     const scheduledMessage = new ScheduledMessage({
+      
       userId,
       receiverMobileNo,
       message,
       scheduledTime,
+      filePathUrl,
       sent: false
     });
   
