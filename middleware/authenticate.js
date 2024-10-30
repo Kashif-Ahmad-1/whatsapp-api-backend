@@ -3,6 +3,10 @@ const jwt = require("jsonwebtoken");
 const activeTokens = new Set(); // For demonstration; consider a better storage solution for production
 
 const authenticate = (req, res, next) => {
+  if (req.path === '/api/sendMessages') {
+    return next();
+}
+
   const token = req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) return res.status(401).json({ message: "Access Denied. No token provided." });
