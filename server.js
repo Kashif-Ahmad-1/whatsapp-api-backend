@@ -82,6 +82,7 @@ app.use(cors({
 app.post('/api/sendScheduledMessages', async (req, res) => {
   try {
       await sendScheduledMessages();
+      await deleteSentMessages();
       res.status(200).json({ message: 'Scheduled messages sent successfully' });
   } catch (error) {
       res.status(500).json({ message: 'Error sending scheduled messages', error });
