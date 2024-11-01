@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const cloudinary = require('../config/cloudinaryConfig');
 const Template = require('../models/Template');
-
+const {authenticate} = require('../middleware/authenticate')
 const router = express.Router();
 
 const storage = multer.memoryStorage();
@@ -34,18 +34,16 @@ const generateShortId = (length) => {
 };
 
 // Create a template
-router.post('/', upload.array('images'), async (req, res) => {
+router.post('/', authenticate, upload.array('images'), async (req, res) => {
     try {
         const { text } = req.body;
+        const userId = req.user.id; // Get the authenticated user's ID
 
-        // Upload all images and gather their URLs
         const imageUrls = await Promise.all(req.files.map(file => uploadImageToCloudinary(file)));
-
-        // Generate a unique template ID (8 characters long)
         const templateId = generateShortId(8);
 
-        const newTemplate = new Template({ templateId, text, imageUrls }); // Store imageUrls as an array
-        await newTemplate.save(); // Save to MongoDB
+        const newTemplate = new Template({ templateId, text, imageUrls, userId }); // Store userId
+        await newTemplate.save();
         res.status(201).json(newTemplate);
     } catch (error) {
         console.error(error);
@@ -53,10 +51,13 @@ router.post('/', upload.array('images'), async (req, res) => {
     }
 });
 
+
 // Retrieve all templates
-router.get('/', async (req, res) => {
+
+router.get('/', authenticate, async (req, res) => {
     try {
-        const templates = await Template.find();
+        const userId = req.user.id; // Get the authenticated user's ID
+        const templates = await Template.find({ userId }); // Filter templates by userId
         res.json(templates);
     } catch (error) {
         console.error(error);
@@ -64,13 +65,18 @@ router.get('/', async (req, res) => {
     }
 });
 
+
 // Retrieve a specific template by ID
-router.get('/:templateId', async (req, res) => {
+
+router.get('/:templateId', authenticate, async (req, res) => {
     const { templateId } = req.params;
     try {
         const template = await Template.findOne({ templateId });
-        
+
         if (template) {
+            if (template.userId.toString() !== req.user.id) {
+                return res.status(403).json({ message: "Access Denied. You do not own this template." });
+            }
             return res.json(template);
         } else {
             return res.status(404).json({ error: "Template not found." });
@@ -82,20 +88,26 @@ router.get('/:templateId', async (req, res) => {
 });
 
 // Delete a template by ID
-router.delete('/:templateId', async (req, res) => {
+router.delete('/:templateId', authenticate, async (req, res) => {
     const { templateId } = req.params;
     try {
-        const result = await Template.findOneAndDelete({ templateId });
+        const template = await Template.findOne({ templateId });
 
-        if (result) {
-            return res.status(200).json({ message: "Template deleted successfully." });
-        } else {
+        if (!template) {
             return res.status(404).json({ error: "Template not found." });
         }
+
+        if (template.userId.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Access Denied. You do not own this template." });
+        }
+
+        await Template.findOneAndDelete({ templateId });
+        return res.status(200).json({ message: "Template deleted successfully." });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to delete template." });
     }
 });
+
 
 module.exports = router;
