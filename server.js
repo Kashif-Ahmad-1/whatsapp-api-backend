@@ -11,13 +11,21 @@ const whatsappKeyRoutes = require('./routes/whatsappKeyRoutes')
 const whatsappStatusRoutes = require('./routes/whatsappStatusRoutes')
 const ScheduledMessage = require('./models/ScheduledMessage');
 const WhatsAppKey = require('./models/WhatsAppKey');
+const Message = require('./models/Message');
 const cron = require('node-cron');
+const Template = require('./models/Template')
+const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
+const multer = require('multer');
+const cloudinary = require('./config/cloudinaryConfig');
 const MessageStatus = require('./models/MessageStatus');
+const templateRoutes = require('./routes/templateRoutes'); 
 require("dotenv").config();
 // "multer-storage-cloudinary": "^4.0.0",
 const mongoose = require('mongoose');
 // Function to delete sent messages
+
+
 
 
 const sendScheduledMessages = async () => {
@@ -34,23 +42,42 @@ const sendScheduledMessages = async () => {
 
       if (!keyRecord) continue; // Skip if no API key
 
+      // Prepare the payload for sending
       const payload = {
         receiverMobileNo: message.receiverMobileNo,
-        message: [message.message]
+        message: [message.message],
+        filePathUrl: message.filePathUrl || [] // Add this line to include file URLs
       };
 
+      // Send the message
       await axios.post("https://app.messageautosender.com/api/v1/message/create", payload, {
         headers: { "x-api-key": keyRecord.apiKey }
       });
 
+      
+       // Save to database
+       const newMessage = new Message({
+         userId: message.userId._id,
+         apiKey: keyRecord.apiKey,
+         receiverMobileNo:message.receiverMobileNo,
+         message: message.message, // Save as a string
+         filePathUrl: message.filePathUrl ? message.filePathUrl.join(',') : null, // Save filePathUrl as a string if provided
+       });
+   
+       await newMessage.save();
+
       // Mark message as sent
       message.sent = true;
       await message.save();
+
+      // Delete the scheduled message from the database
+      await ScheduledMessage.findByIdAndDelete(message._id); 
     }
   } catch (error) {
     console.error("Error sending scheduled messages:", error);
   }
 };
+
 
 // Schedule the job to run every minute
 cron.schedule("* * * * *", sendScheduledMessages);
@@ -89,6 +116,7 @@ app.post('/api/sendScheduledMessages', async (req, res) => {
   }
 });
 
+app.use('/api/templates', templateRoutes);
 
 app.use(express.json());
 app.use("/api/auth", authRoutes);

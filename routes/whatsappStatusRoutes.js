@@ -56,9 +56,9 @@ router.post('/save-message', authenticate, async (req, res) => {
 
 // Update message status
 router.post('/update-message-status', authenticate, async (req, res) => {
-  const { mobileNo, status } = req.body;
+  const { mobileNo, message,status } = req.body;
   try {
-    await MessageStatus.updateOne({ mobileNo, userId: req.user.id }, { status }); // Ensure only the user's message can be updated
+    await MessageStatus.updateOne({ mobileNo, message,userId: req.user.id }, { status }); // Ensure only the user's message can be updated
     res.status(200).json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

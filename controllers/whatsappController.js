@@ -11,7 +11,7 @@ cloudinary.config({
   api_secret: 'klGS-0_rcHywWyApoOsoV4UhgNU',
 });
 
-exports.uploadImage = async (req, res) => {
+exports.uploadImage  = async (req, res) => {
   // Check if files were uploaded
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: "No files uploaded." });
@@ -21,9 +21,21 @@ exports.uploadImage = async (req, res) => {
     // Map through the files and upload to Cloudinary
     const filePathUrls = await Promise.all(req.files.map(file => {
       return new Promise((resolve, reject) => {
+        // Determine the resource type based on the file extension
+        let resourceType;
+        if (file.mimetype.startsWith('image/')) {
+          resourceType = 'image';
+        } else if (file.mimetype.startsWith('video/')) {
+          resourceType = 'video';
+        } else if (file.mimetype === 'application/pdf') {
+          resourceType = 'raw'; // Use 'raw' for PDFs in Cloudinary
+        } else {
+          return reject(new Error('Unsupported file type.'));
+        }
+
         const stream = cloudinary.uploader.upload_stream({
           folder: 'uploads',
-          resource_type: 'image',
+          resource_type: resourceType,
         }, (error, result) => {
           if (error) {
             reject(error);
@@ -153,16 +165,15 @@ exports.saveApiKey = async (req, res) => {
  
   
   exports.scheduleMessage = async (req, res) => {
-    const { receiverMobileNo, message, scheduledTime,filePathUrl } = req.body;
+    const { receiverMobileNo, message, scheduledTime, filePathUrl } = req.body; 
     const userId = req.user.id; // Assuming you have user authentication
   
     const scheduledMessage = new ScheduledMessage({
-      
       userId,
       receiverMobileNo,
       message,
       scheduledTime,
-      filePathUrl,
+      filePathUrl, // Save the file URLs here
       sent: false
     });
   
@@ -173,7 +184,7 @@ exports.saveApiKey = async (req, res) => {
       console.error("Error scheduling message:", error);
       res.status(500).json({ message: "Failed to schedule message." });
     }
-  };
+};
   
 
 // Get Scheduled Messages Endpoint

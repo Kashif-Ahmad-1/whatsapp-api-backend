@@ -20,7 +20,7 @@ const router = express.Router();
 router.get("/api-key", authenticate, getApiKey);       // Fetch existing API key
 router.post("/api-key", authenticate, saveApiKey);     // Save or update API key
 router.post("/send-message", authenticate, sendMessage); // Send WhatsApp message
-router.post("/upload", authenticate, upload.array('image'), uploadImage); // Upload images
+router.post("/upload", authenticate, upload.array('files'), uploadImage); 
 router.post('/schedule-message', authenticate, scheduleMessage);
 router.get('/scheduled-messages', authenticate, getScheduledMessages);
 

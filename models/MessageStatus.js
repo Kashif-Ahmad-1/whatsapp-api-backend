@@ -5,7 +5,7 @@ const messageSchema = new mongoose.Schema({
   mobileNo: String,
   name: String,
   message: String,
-  filePathUrl: [String],
+  filePathUrl: { type: [String], default: [] },
   status: { type: String, default: 'pending' },
 });
 
